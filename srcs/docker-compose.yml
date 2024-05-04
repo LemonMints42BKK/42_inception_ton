@@ -1,0 +1,129 @@
+version: '3'
+
+services:
+  
+  nginx:
+    build:
+      context: ./requirements/nginx
+      dockerfile: Dockerfile
+    image: nginx
+    container_name: nginx
+    depends_on:
+      - wordpress
+      - adminer
+    restart: always
+    volumes:
+      - ${HOME}/data/wordpress:/var/www/html
+    ports:
+      - 443:443
+    networks:
+      - app
+    env_file:
+      - .env
+
+  wordpress:
+    build: 
+      context: ./requirements/wordpress
+      dockerfile: Dockerfile
+    image: wordpress
+    container_name: wordpress
+    depends_on:
+      - mariadb
+      - redis
+    restart: always
+    volumes:
+      - ${HOME}/data/wordpress:/var/www/html
+    networks:
+      - app
+    env_file:
+      - .env
+
+  redis:
+    build: 
+      context: ./requirements/bonus/redis
+      dockerfile: Dockerfile
+    image: redis
+    container_name: redis
+    depends_on:
+      - mariadb
+    restart: always
+    networks:
+      - app
+    
+  adminer:
+    build: 
+      context: ./requirements/bonus/adminer
+      dockerfile: Dockerfile
+    image: adminer
+    container_name: adminer
+    restart: always
+    networks:
+      - app
+
+  mariadb:
+    build:
+      context: ./requirements/mariadb
+      dockerfile: Dockerfile
+    image: mariadb
+    container_name: mariadb
+    restart: always
+    # user: 1000:1000
+    volumes:
+      - ${HOME}/data/mariadb:/var/lib/mysql
+      # - mysql_data:/var/lib/mysql
+    networks:
+      - app
+    env_file:
+      - .env
+  
+  ftp:
+    build:
+      context: ./requirements/bonus/ftp
+      dockerfile: Dockerfile
+    image: ftp
+    container_name: ftp
+    restart: always
+    volumes: 
+      - ${HOME}/data/wordpress:/var/www/html
+    ports:
+      - 21:21
+      - 21100-21110:21100-21110
+    networks:
+      - app
+    env_file:
+      - .env
+  
+  lighttpd:
+    build:
+      context: ./requirements/bonus/lighttpd
+      dockerfile: dockerfile
+    image: lighttpd
+    container_name: lighttpd
+    networks:
+      - app
+
+  glances:
+    build:
+      context: ./requirements/bonus/glances
+      dockerfile: Dockerfile
+    image: glances
+    container_name: glances
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /run/user/1000/podman/podman.sock:/run/user/1000/podman/podman.sock:ro
+    networks:
+      - app
+
+networks:
+  app:
+
+volumes:
+  mysql_data:
+    driver_opts:
+      type: none
+      device: ${HOME}/data/mariadb
+      o: bind
+      # options:
+      #   uid: "1000"
+      #   gid: "1000"
